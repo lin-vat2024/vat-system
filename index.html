@@ -1,10 +1,776 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>增值税凭证管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
+        
+        /* 导航栏 */
+        .navbar {
+            background: linear-gradient(135deg, #1890ff, #096dd9);
+            color: white; padding: 15px 20px;
+            display: flex; justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* 内容区 */
+        .container { 
+            padding: 20px; 
+            max-width: 800px; 
+            margin: 0 auto;
+            padding-bottom: 70px;
+        }
+        
+        /* 卡片 */
+        .card {
+            background: white; border-radius: 12px; padding: 20px;
+            margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        
+        /* 按钮 */
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 6px;
+            background: #1890ff; color: white; cursor: pointer;
+            font-size: 14px; font-weight: 500; transition: all 0.3s;
+        }
+        .btn:hover { background: #096dd9; transform: translateY(-1px); }
+        .btn-secondary { background: #f5f5f5; color: #666; border: 1px solid #d9d9d9; }
+        .btn-secondary:hover { background: #e6e6e6; }
+        
+        /* 统计 */
+        .stats { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+            margin: 20px 0;
+        }
+        .stat-item { 
+            text-align: center; 
+            padding: 20px 10px; 
+            background: #fafafa;
+            border-radius: 8px;
+        }
+        .stat-number { 
+            font-size: 28px; 
+            color: #1890ff; 
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .stat-label { color: #666; font-size: 14px; }
+        
+        /* 表单 */
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block; margin-bottom: 8px;
+            font-weight: 500; color: #333;
+        }
+        .form-control {
+            width: 100%; padding: 12px 15px;
+            border: 1px solid #d9d9d9; border-radius: 6px;
+            font-size: 14px; transition: border 0.3s;
+        }
+        .form-control:focus {
+            outline: none; border-color: #1890ff;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+        
+        /* 图片上传区域 */
+        .upload-area {
+            border: 2px dashed #d9d9d9; border-radius: 8px;
+            padding: 40px 20px; text-align: center;
+            background: #fafafa; cursor: pointer;
+            transition: all 0.3s; margin-bottom: 20px;
+        }
+        .upload-area:hover {
+            border-color: #1890ff; background: #f0f9ff;
+        }
+        .upload-icon {
+            font-size: 48px; color: #999; margin-bottom: 15px;
+        }
+        .upload-text { color: #666; font-size: 16px; display: block; }
+        .upload-hint { color: #999; font-size: 12px; margin-top: 5px; }
+        
+        /* 图片预览 */
+        .image-preview {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px; margin-top: 15px;
+        }
+        .preview-item {
+            position: relative; border-radius: 6px; overflow: hidden;
+            height: 120px; border: 1px solid #eee;
+        }
+        .preview-img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .remove-btn {
+            position: absolute; top: 5px; right: 5px;
+            width: 24px; height: 24px; background: rgba(0,0,0,0.7);
+            color: white; border-radius: 50%; border: none;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 16px;
+        }
+        
+        /* 凭证列表项 */
+        .doc-item {
+            padding: 15px; border-bottom: 1px solid #eee;
+            transition: background 0.3s; cursor: pointer;
+        }
+        .doc-item:hover { background: #fafafa; }
+        .doc-title { font-weight: 500; color: #333; margin-bottom: 5px; }
+        .doc-meta { color: #666; font-size: 13px; }
+        .doc-amount { color: #f5222d; font-weight: bold; }
+        
+        /* 底部导航 */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; display: flex; justify-content: space-around;
+            padding: 12px 0; border-top: 1px solid #eee;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        .nav-btn {
+            border: none; background: none; cursor: pointer;
+            text-align: center; color: #666; font-size: 12px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .nav-btn.active { color: #1890ff; }
+        .nav-icon { font-size: 20px; margin-bottom: 4px; }
+        
+        /* 模态框 */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center;
+            justify-content: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white; border-radius: 12px; padding: 30px;
+            max-width: 500px; width: 90%; max-height: 80vh;
+            overflow-y: auto; animation: modalShow 0.3s ease;
+        }
+        @keyframes modalShow {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center; padding: 40px 20px; color: #999;
+        }
+        .empty-icon { font-size: 48px; opacity: 0.5; margin-bottom: 15px; }
+        
+        /* 详情页图片 */
+        .detail-images {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px; margin: 20px 0;
+        }
+        .detail-img {
+            width: 100%; height: 150px; object-fit: cover;
+            border-radius: 8px; border: 1px solid #eee;
+        }
+    </style>
 </head>
 <body>
-    <h1>增值税凭证管理系统</h1>
-    <p>上传成功！稍后配置...</p>
+    <!-- 顶部导航 -->
+    <div class="navbar">
+        <div style="font-weight: bold; font-size: 16px;">增值税凭证留痕管理系统</div>
+        <div style="display: flex; gap: 20px;">
+            <a href="javascript:void(0)" onclick="loadPage('home')" 
+               style="color: white; text-decoration: none; font-size: 14px;">首页</a>
+            <a href="javascript:void(0)" onclick="loadPage('upload')" 
+               style="color: white; text-decoration: none; font-size: 14px;">上传</a>
+            <a href="javascript:void(0)" onclick="loadPage('list')" 
+               style="color: white; text-decoration: none; font-size: 14px;">凭证</a>
+        </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="container" id="content">
+        <!-- 内容会动态加载到这里 -->
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+        <button class="nav-btn active" onclick="loadPage('home')">
+            <span class="nav-icon">🏠</span>
+            <span>首页</span>
+        </button>
+        <button class="nav-btn" onclick="loadPage('upload')">
+            <span class="nav-icon">📤</span>
+            <span>上传</span>
+        </button>
+        <button class="nav-btn" onclick="loadPage('list')">
+            <span class="nav-icon">📁</span>
+            <span>凭证</span>
+        </button>
+    </div>
+
+    <!-- 提示模态框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="modal-title">提示</h3>
+            <p id="modal-message">这是一条消息</p>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 数据存储
+        let documents = JSON.parse(localStorage.getItem('vat-documents') || '[]');
+        let currentImages = []; // 当前上传的图片
+        
+        // 工具函数
+        function showMessage(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        function saveToLocalStorage() {
+            localStorage.setItem('vat-documents', JSON.stringify(documents));
+        }
+        
+        // 生成预览URL（模拟上传）
+        function generatePreviewURL(file) {
+            return URL.createObjectURL(file);
+        }
+        
+        // 页面加载
+        function loadPage(page) {
+            // 更新导航状态
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            let content = '';
+            
+            switch(page) {
+                case 'home':
+                    content = loadHomePage();
+                    document.querySelectorAll('.nav-btn')[0].classList.add('active');
+                    break;
+                case 'upload':
+                    content = loadUploadPage();
+                    document.querySelectorAll('.nav-btn')[1].classList.add('active');
+                    break;
+                case 'list':
+                    content = loadListPage();
+                    document.querySelectorAll('.nav-btn')[2].classList.add('active');
+                    break;
+                default:
+                    content = loadHomePage();
+            }
+            
+            document.getElementById('content').innerHTML = content;
+        }
+        
+        // 首页
+        function loadHomePage() {
+            const totalAmount = documents.reduce((sum, doc) => sum + (doc.amount || 0), 0);
+            const invoiceCount = documents.filter(doc => doc.type === '发票').length;
+            
+            return `
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">📊 统计概览</h2>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-number">${documents.length}</span>
+                            <span class="stat-label">总凭证数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${invoiceCount}</span>
+                            <span class="stat-label">发票数量</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${totalAmount}</span>
+                            <span class="stat-label">总金额</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2>📋 最近凭证</h2>
+                        <button class="btn" onclick="loadPage('upload')" style="padding: 8px 16px; font-size: 13px;">
+                            + 添加新凭证
+                        </button>
+                    </div>
+                    
+                    ${documents.length > 0 ? `
+                        <div>
+                            ${documents.slice(0, 5).map(doc => `
+                                <div class="doc-item" onclick="viewDetail('${doc.id}')">
+                                    <div class="doc-title">${doc.title}</div>
+                                    <div class="doc-meta">
+                                        ${doc.type || '其他'} • 
+                                        ${doc.date || ''} • 
+                                        <span class="doc-amount">¥${(doc.amount || 0).toFixed(2)}</span>
+                                    </div>
+                                    ${doc.images && doc.images.length > 0 ? 
+                                        `<div style="color: #1890ff; font-size: 12px; margin-top: 5px;">
+                                            📸 ${doc.images.length}张照片
+                                        </div>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div class="empty-state">
+                            <div class="empty-icon">📁</div>
+                            <p>暂无凭证记录</p>
+                            <button class="btn" onclick="loadPage('upload')" style="margin-top: 15px;">
+                                去上传第一个凭证
+                            </button>
+                        </div>
+                    `}
+                </div>
+                
+                <div class="card">
+                    <h2 style="margin-bottom: 15px;">📝 使用说明</h2>
+                    <div style="color: #666; line-height: 1.8;">
+                        <p>✅ <strong>上传凭证照片：</strong>支持上传合同、发票、单据的照片</p>
+                        <p>✅ <strong>完整信息记录：</strong>记录交易金额、日期、对方单位等信息</p>
+                        <p>✅ <strong>本地安全存储：</strong>所有数据保存在您的浏览器中</p>
+                        <p>✅ <strong>符合税务要求：</strong>满足增值税原始凭证留存规定</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 上传页面
+        function loadUploadPage() {
+            return `
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">📤 上传新凭证</h2>
+                    
+                    <!-- 图片上传 -->
+                    <div class="form-group">
+                        <label class="form-label">上传凭证照片（支持多选）</label>
+                        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                            <div class="upload-icon">📷</div>
+                            <span class="upload-text">点击选择照片或拖拽到此区域</span>
+                            <span class="upload-hint">支持 JPG、PNG 格式，每张不超过 5MB</span>
+                        </div>
+                        <input type="file" id="fileInput" accept="image/*" multiple 
+                               style="display: none;" onchange="handleImageUpload(event)">
+                        
+                        <!-- 图片预览 -->
+                        <div id="imagePreview" class="image-preview">
+                            ${currentImages.map((img, index) => `
+                                <div class="preview-item">
+                                    <img src="${img.preview}" class="preview-img" alt="凭证照片">
+                                    <button class="remove-btn" onclick="removeImage(${index})">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- 表单 -->
+                    <div class="form-group">
+                        <label class="form-label">凭证标题 *</label>
+                        <input type="text" class="form-control" id="docTitle" 
+                               placeholder="例如：2024年1月采购发票" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">凭证类型</label>
+                        <select class="form-control" id="docType">
+                            <option value="发票">发票</option>
+                            <option value="合同">合同</option>
+                            <option value="出库单">出库单</option>
+                            <option value="入库单">入库单</option>
+                            <option value="运输单">运输单</option>
+                            <option value="过磅单">过磅单</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">交易金额（元）</label>
+                        <input type="number" class="form-control" id="docAmount" 
+                               placeholder="0.00" step="0.01" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">交易方名称</label>
+                        <input type="text" class="form-control" id="docCompany" 
+                               placeholder="请输入对方公司/个人名称">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">交易日期</label>
+                        <input type="date" class="form-control" id="docDate" 
+                               value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">备注说明</label>
+                        <textarea class="form-control" id="docRemark" rows="3" 
+                                  placeholder="请输入备注信息，如交易内容、特殊条款等"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button class="btn btn-secondary" onclick="resetUploadForm()" style="flex: 1;">
+                            清空表单
+                        </button>
+                        <button class="btn" onclick="saveDocument()" style="flex: 1;">
+                            保存凭证
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 图片上传处理
+        function handleImageUpload(event) {
+            const files = Array.from(event.target.files);
+            
+            // 检查文件大小和类型
+            const validFiles = files.filter(file => {
+                if (file.size > 5 * 1024 * 1024) {
+                    showMessage('文件过大', `${file.name} 超过5MB限制`);
+                    return false;
+                }
+                if (!file.type.startsWith('image/')) {
+                    showMessage('格式错误', `${file.name} 不是图片文件`);
+                    return false;
+                }
+                return true;
+            });
+            
+            // 添加到当前图片列表
+            validFiles.forEach(file => {
+                currentImages.push({
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    preview: generatePreviewURL(file)
+                });
+            });
+            
+            // 更新预览
+            updateImagePreview();
+        }
+        
+        // 更新图片预览
+        function updateImagePreview() {
+            const previewHtml = currentImages.map((img, index) => `
+                <div class="preview-item">
+                    <img src="${img.preview}" class="preview-img" alt="凭证照片">
+                    <button class="remove-btn" onclick="removeImage(${index})">×</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('imagePreview').innerHTML = previewHtml;
+        }
+        
+        // 移除图片
+        function removeImage(index) {
+            // 释放URL对象
+            URL.revokeObjectURL(currentImages[index].preview);
+            currentImages.splice(index, 1);
+            updateImagePreview();
+        }
+        
+        // 清空上传表单
+        function resetUploadForm() {
+            document.getElementById('docTitle').value = '';
+            document.getElementById('docType').value = '发票';
+            document.getElementById('docAmount').value = '';
+            document.getElementById('docCompany').value = '';
+            document.getElementById('docDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('docRemark').value = '';
+            
+            // 清空图片
+            currentImages.forEach(img => URL.revokeObjectURL(img.preview));
+            currentImages = [];
+            updateImagePreview();
+        }
+        
+        // 保存凭证
+        function saveDocument() {
+            const title = document.getElementById('docTitle').value.trim();
+            const type = document.getElementById('docType').value;
+            const amount = parseFloat(document.getElementById('docAmount').value) || 0;
+            const company = document.getElementById('docCompany').value.trim();
+            const date = document.getElementById('docDate').value;
+            const remark = document.getElementById('docRemark').value;
+            
+            // 验证必填项
+            if (!title) {
+                showMessage('提示', '请输入凭证标题');
+                return;
+            }
+            
+            // 创建新凭证
+            const newDoc = {
+                id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                title: title,
+                type: type,
+                amount: amount,
+                company: company,
+                date: date,
+                remark: remark,
+                uploadTime: new Date().toLocaleString(),
+                images: currentImages.map(img => ({
+                    name: img.name,
+                    size: img.size,
+                    type: img.file.type,
+                    // 在实际应用中，这里应该上传到服务器并获取URL
+                    // 这里我们只保存文件名，实际显示时使用预览URL
+                    preview: img.preview
+                }))
+            };
+            
+            // 添加到列表
+            documents.unshift(newDoc);
+            saveToLocalStorage();
+            
+            showMessage('成功', `凭证"${title}"保存成功！`);
+            
+            // 清空表单
+            resetUploadForm();
+            
+            // 3秒后返回首页
+            setTimeout(() => {
+                loadPage('home');
+            }, 2000);
+        }
+        
+        // 凭证列表页
+        function loadListPage() {
+            return `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>📁 全部凭证</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" class="form-control" id="searchInput" 
+                                   placeholder="搜索标题、交易方..." style="width: 200px;"
+                                   oninput="searchDocuments()">
+                            <button class="btn" onclick="loadPage('upload')">+ 新增</button>
+                        </div>
+                    </div>
+                    
+                    <div id="documentList">
+                        ${documents.length > 0 ? 
+                            documents.map(doc => `
+                                <div class="doc-item" onclick="viewDetail('${doc.id}')">
+                                    <div style="display: flex; align-items: flex-start;">
+                                        <div style="flex: 1;">
+                                            <div class="doc-title">${doc.title}</div>
+                                            <div class="doc-meta">
+                                                ${doc.type} • 
+                                                ${doc.company ? doc.company + ' • ' : ''}
+                                                ${doc.date} • 
+                                                <span class="doc-amount">¥${doc.amount.toFixed(2)}</span>
+                                            </div>
+                                            ${doc.images && doc.images.length > 0 ? 
+                                                `<div style="color: #1890ff; font-size: 12px; margin-top: 5px;">
+                                                    📸 ${doc.images.length}张照片
+                                                </div>` : ''}
+                                            ${doc.remark ? 
+                                                `<div style="color: #999; font-size: 12px; margin-top: 5px; max-width: 600px;">
+                                                    ${doc.remark.substring(0, 100)}${doc.remark.length > 100 ? '...' : ''}
+                                                </div>` : ''}
+                                        </div>
+                                        <button onclick="event.stopPropagation(); deleteDocument('${doc.id}')" 
+                                                style="color: #f5222d; background: none; border: none; cursor: pointer; padding: 5px;">
+                                            删除
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('') : 
+                            `<div class="empty-state">
+                                <div class="empty-icon">📁</div>
+                                <p>暂无凭证记录</p>
+                                <button class="btn" onclick="loadPage('upload')" style="margin-top: 15px;">
+                                    去上传第一个凭证
+                                </button>
+                            </div>`}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 搜索凭证
+        function searchDocuments() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            if (!keyword) {
+                // 重置为原始列表
+                loadListPage();
+                return;
+            }
+            
+            const filtered = documents.filter(doc => 
+                doc.title.toLowerCase().includes(keyword) ||
+                (doc.company && doc.company.toLowerCase().includes(keyword)) ||
+                (doc.remark && doc.remark.toLowerCase().includes(keyword))
+            );
+            
+            const listHtml = filtered.length > 0 ? 
+                filtered.map(doc => `
+                    <div class="doc-item" onclick="viewDetail('${doc.id}')">
+                        <div style="display: flex; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <div class="doc-title">${doc.title}</div>
+                                <div class="doc-meta">
+                                    ${doc.type} • 
+                                    ${doc.company ? doc.company + ' • ' : ''}
+                                    ${doc.date} • 
+                                    <span class="doc-amount">¥${doc.amount.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') :
+                `<div style="text-align: center; padding: 30px; color: #999;">
+                    <div>🔍</div>
+                    <p>未找到匹配的凭证</p>
+                </div>`;
+            
+            document.getElementById('documentList').innerHTML = listHtml;
+        }
+        
+        // 查看详情
+        let currentDetailId = null;
+        
+        function viewDetail(id) {
+            currentDetailId = id;
+            const doc = documents.find(d => d.id === id);
+            if (!doc) {
+                showMessage('错误', '凭证不存在');
+                return;
+            }
+            
+            const detailHtml = `
+                <div class="card">
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-secondary" onclick="loadPage('list')" style="margin-bottom: 15px;">
+                            ← 返回列表
+                        </button>
+                        
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                            <div>
+                                <h2>${doc.title}</h2>
+                                <div style="color: #999; font-size: 14px; margin-top: 5px;">
+                                    上传时间：${doc.uploadTime}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" onclick="editDocument('${doc.id}')">编辑</button>
+                                <button class="btn btn-secondary" onclick="deleteDocument('${doc.id}')">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 基本信息 -->
+                    <div style="background: #fafafa; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                            <div>
+                                <div style="color: #999; font-size: 12px; margin-bottom: 5px;">凭证类型</div>
+                                <div style="font-weight: 500;">${doc.type}</div>
+                            </div>
+                            <div>
+                                <div style="color: #999; font-size: 12px; margin-bottom: 5px;">交易金额</div>
+                                <div style="font-weight: 500; color: #f5222d;">¥${doc.amount.toFixed(2)}</div>
+                            </div>
+                            <div>
+                                <div style="color: #999; font-size: 12px; margin-bottom: 5px;">交易方</div>
+                                <div style="font-weight: 500;">${doc.company || '未填写'}</div>
+                            </div>
+                            <div>
+                                <div style="color: #999; font-size: 12px; margin-bottom: 5px;">交易日期</div>
+                                <div style="font-weight: 500;">${doc.date}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 凭证照片 -->
+                    ${doc.images && doc.images.length > 0 ? `
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="margin-bottom: 15px;">📸 凭证照片 (${doc.images.length}张)</h3>
+                            <div class="detail-images">
+                                ${doc.images.map(img => `
+                                    <div>
+                                        <img src="${img.preview}" class="detail-img" alt="凭证照片">
+                                        <div style="font-size: 12px; color: #666; margin-top: 5px; text-align: center;">
+                                            ${img.name}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- 备注 -->
+                    ${doc.remark ? `
+                        <div style="margin-bottom: 30px;">
+                            <h3 style="margin-bottom: 10px;">📝 备注说明</h3>
+                            <div style="background: #fafafa; padding: 15px; border-radius: 8px; line-height: 1.6;">
+                                ${doc.remark.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('content').innerHTML = detailHtml;
+        }
+        
+        // 删除凭证
+        function deleteDocument(id) {
+            if (confirm('确定要删除这个凭证吗？此操作不可恢复。')) {
+                const index = documents.findIndex(d => d.id === id);
+                if (index !== -1) {
+                    // 释放图片URL
+                    if (documents[index].images) {
+                        documents[index].images.forEach(img => {
+                            if (img.preview && img.preview.startsWith('blob:')) {
+                                URL.revokeObjectURL(img.preview);
+                            }
+                        });
+                    }
+                    
+                    documents.splice(index, 1);
+                    saveToLocalStorage();
+                    showMessage('成功', '凭证已删除');
+                    
+                    if (currentDetailId === id) {
+                        loadPage('list');
+                    } else {
+                        loadPage('list');
+                    }
+                }
+            }
+        }
+        
+        // 编辑凭证（简化版，实际中需要更复杂的编辑界面）
+        function editDocument(id) {
+            showMessage('提示', '编辑功能正在开发中，请先删除后重新创建');
+        }
+        
+        // 初始化
+        window.onload = function() {
+            // 加载首页
+            loadPage('home');
+            
+            // 设置模态框点击关闭
+            document.getElementById('modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        };
+    </script>
 </body>
 </html>
